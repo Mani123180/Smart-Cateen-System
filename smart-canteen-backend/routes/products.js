@@ -1,96 +1,129 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../utils/db');
+const Product = require('../models/Product');
 
 // Get all products
-router.get('/', (req, res) => {
-    const products = db.products.getAll();
-    res.json(products);
+router.get('/', async (req, res) => {
+    try {
+        const products = await Product.find({}, '-_id'); // Exclude MongoDB _id, use our custom 'id'
+        res.json(products);
+    } catch (err) {
+        console.error('Error fetching products:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
 });
 
 // Create a new product
-router.post('/', (req, res) => {
-    const { name, price, category, image, stock } = req.body;
+router.post('/', async (req, res) => {
+    const { name, price, category, image, stock, description, meals } = req.body;
 
     if (!name || price === undefined || !category) {
         return res.status(400).json({ message: 'Name, price, and category are required' });
     }
 
-    const products = db.products.getAll();
-    const newProduct = {
-        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
-        name,
-        price: parseFloat(price),
-        category,
-        image: image || '',
-        stock: parseInt(stock) || 0
-    };
+    try {
+        // Generate sequential custom ID
+        const lastProduct = await Product.findOne().sort('-id');
+        const newId = lastProduct && lastProduct.id ? lastProduct.id + 1 : 1;
 
-    products.push(newProduct);
-    db.products.save(products);
+        const newProduct = new Product({
+            id: newId,
+            name,
+            price: parseFloat(price),
+            category,
+            image: image || '',
+            stock: parseInt(stock) || 0,
+            description: description || '',
+            meals: meals || []
+        });
 
-    res.status(201).json(newProduct);
+        await newProduct.save();
+
+        // Return object without _id to match frontend expectations
+        const productData = newProduct.toObject();
+        delete productData._id;
+
+        res.status(201).json(productData);
+    } catch (err) {
+        console.error('Error creating product:', err);
+        res.status(500).json({ message: 'Server error while creating product' });
+    }
 });
 
 // Update a product
-router.put('/:id', (req, res) => {
+router.put('/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, price, category, image, stock } = req.body;
+    const { name, price, category, image, stock, description, meals } = req.body;
 
-    let products = db.products.getAll();
-    const productIndex = products.findIndex(p => p.id == id);
+    try {
+        const product = await Product.findOne({ id: Number(id) });
 
-    if (productIndex === -1) {
-        return res.status(404).json({ message: 'Product not found' });
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        if (name) product.name = name;
+        if (price !== undefined) product.price = parseFloat(price);
+        if (category) product.category = category;
+        if (image !== undefined) product.image = image;
+        if (stock !== undefined) product.stock = parseInt(stock);
+        if (description !== undefined) product.description = description;
+        if (meals !== undefined) product.meals = meals;
+
+        await product.save();
+
+        const productData = product.toObject();
+        delete productData._id;
+
+        res.json(productData);
+    } catch (err) {
+        console.error('Error updating product:', err);
+        res.status(500).json({ message: 'Server error while updating product' });
     }
-
-    const updatedProduct = {
-        ...products[productIndex],
-        name: name || products[productIndex].name,
-        price: price !== undefined ? parseFloat(price) : products[productIndex].price,
-        category: category || products[productIndex].category,
-        image: image !== undefined ? image : products[productIndex].image,
-        stock: stock !== undefined ? parseInt(stock) : products[productIndex].stock
-    };
-
-    products[productIndex] = updatedProduct;
-    db.products.save(products);
-
-    res.json(updatedProduct);
 });
 
 // Update stock only (existing route, kept for compatibility)
-router.patch('/:id/stock', (req, res) => {
+router.patch('/:id/stock', async (req, res) => {
     const { id } = req.params;
     const { stock } = req.body;
 
-    let products = db.products.getAll();
-    const productIndex = products.findIndex(p => p.id == id);
+    try {
+        const product = await Product.findOneAndUpdate(
+            { id: Number(id) },
+            { stock: parseInt(stock) },
+            { new: true }
+        );
 
-    if (productIndex === -1) {
-        return res.status(404).json({ message: 'Product not found' });
+        if (!product) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        const productData = product.toObject();
+        delete productData._id;
+
+        res.json(productData);
+    } catch (err) {
+        console.error('Error updating product stock:', err);
+        res.status(500).json({ message: 'Server error while updating product stock' });
     }
-
-    products[productIndex].stock = parseInt(stock);
-    db.products.save(products);
-
-    res.json(products[productIndex]);
 });
 
 // Delete a product
-router.delete('/:id', (req, res) => {
+router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
-    let products = db.products.getAll();
-    const initialLength = products.length;
-    products = products.filter(p => p.id != id);
+    try {
+        const result = await Product.deleteOne({ id: Number(id) });
 
-    if (products.length === initialLength) {
-        return res.status(404).json({ message: 'Product not found' });
+        if (result.deletedCount === 0) {
+            return res.status(404).json({ message: 'Product not found' });
+        }
+
+        res.json({ message: 'Product deleted' });
+    } catch (err) {
+        console.error('Error deleting product:', err);
+        res.status(500).json({ message: 'Server error while deleting product' });
     }
-
-    db.products.save(products);
-    res.json({ message: 'Product deleted' });
 });
 
 module.exports = router;
