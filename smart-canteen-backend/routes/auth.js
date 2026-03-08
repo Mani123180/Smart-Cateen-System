@@ -1,22 +1,16 @@
 /**
  * AUTHENTICATION ROUTES
- * Handles user login, registration, and password recovery.
+ * Handles user login, registration, and password recovery using MongoDB.
  */
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const db = require('../utils/db');
+const User = require('../models/User');
 const nodemailer = require('nodemailer');
-const crypto = require('crypto');
 
-// Secret key for signing JWT tokens (should be in .env)
 const JWT_SECRET = process.env.JWT_SECRET || 'your_secret_key_here';
 
-/**
- * EMAIL TRANSPORTER SETUP
- * Configure connection to Gmail/SMTP for sending automated emails.
- */
 let transporter;
 const setupTransporter = async () => {
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {
@@ -33,26 +27,17 @@ const setupTransporter = async () => {
 };
 setupTransporter();
 
-/**
- * POST /api/auth/login
- * Logic: Validates user existence, compares hashed password, and issues a JWT token.
- */
+// POST /api/auth/login
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        const users = db.users.getAll();
-        // Case-insensitive search for the user by email
-        const user = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+        const user = await User.findOne({ email: new RegExp(`^${email.trim()}$`, 'i') });
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        /**
-         * PASSWORD VERIFICATION
-         * Supports plain-text (demo mode) and bcrypt hashes ($2a, $2b, $2y).
-         */
         let passwordMatch = false;
         const isBcrypt = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'));
 
@@ -69,10 +54,6 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
 
-        /**
-         * TOKEN GENERATION
-         * Creates a signed token valid for 1 day.
-         */
         const token = jwt.sign(
             { id: user.id, name: user.name, role: user.role, email: user.email },
             JWT_SECRET,
@@ -91,40 +72,34 @@ router.post('/login', async (req, res) => {
             }
         });
     } catch (err) {
+        console.error('Login error:', err);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
 
-/**
- * POST /api/auth/register
- * Logic: Validates phone/email uniqueness and creates a new verified student account.
- */
+// POST /api/auth/register
 router.post('/register', async (req, res) => {
     const { name, email, phone, password } = req.body;
 
-    // Validate Indian phone number format
     const phoneRegex = /^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/;
     if (!phone || !phoneRegex.test(phone)) {
         return res.status(400).json({ message: 'Invalid Indian phone number.' });
     }
 
     try {
-        const users = db.users.getAll();
-
-        // Check if email already exists
-        if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
+        const existingEmail = await User.findOne({ email: new RegExp(`^${email}$`, 'i') });
+        if (existingEmail) {
             return res.status(400).json({ message: 'An account with this email already exists.' });
         }
 
-        // Check if phone already exists
-        if (users.find(u => u.phone === phone)) {
+        const existingPhone = await User.findOne({ phone });
+        if (existingPhone) {
             return res.status(400).json({ message: 'An account with this phone number already exists.' });
         }
 
-        // Hash password before saving to DB
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const newUser = {
+        const newUserInfo = {
             id: Date.now().toString(),
             name,
             email: email.toLowerCase(),
@@ -132,10 +107,11 @@ router.post('/register', async (req, res) => {
             password: hashedPassword,
             role: 'student',
             balance: 0,
-            verified: true // INSTANT VERIFICATION enabled for user convenience
+            verified: true
         };
 
-        db.users.create(newUser);
+        const newUser = new User(newUserInfo);
+        await newUser.save();
         console.log(`New Account Created: ${name} (${email})`);
 
         res.status(201).json({
@@ -148,12 +124,8 @@ router.post('/register', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/reset-password
- * Logic: Simple direct password update for recovery.
- */
+// POST /api/auth/reset-password
 router.post('/reset-password', async (req, res) => {
-    console.log('--- PASSWORD RESET ATTEMPT ---');
     const { email, newPassword, confirmPassword } = req.body;
     const cleanEmail = email?.trim().toLowerCase();
 
@@ -169,27 +141,22 @@ router.post('/reset-password', async (req, res) => {
         return res.status(400).json({ message: "Password must be at least 6 characters." });
     }
 
-    let users = db.users.getAll();
-    const userIndex = users.findIndex(u => u.email.toLowerCase() === cleanEmail);
-
-    if (userIndex === -1) {
-        console.log(`RESULT: FAILED - Reset attempt for non-existent email: ${cleanEmail}`);
-        return res.status(404).json({ message: "No account found with this email." });
-    }
-
     try {
+        const user = await User.findOne({ email: new RegExp(`^${cleanEmail}$`, 'i') });
+
+        if (!user) {
+            console.log(`RESULT: FAILED - Reset attempt for non-existent email: ${cleanEmail}`);
+            return res.status(404).json({ message: "No account found with this email." });
+        }
+
         console.log(`Hashing new password for ${cleanEmail}...`);
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        users[userIndex].password = hashedPassword;
 
-        // Save the updated user list back to the local database file
-        const saved = db.users.save(users);
-        if (saved) {
-            console.log(`✅ PASSWORD RESET SUCCESSFUL FOR: ${cleanEmail}`);
-            res.json({ message: "Password reset successful! You can now login." });
-        } else {
-            throw new Error("Disk Write Failed");
-        }
+        user.password = hashedPassword;
+        await user.save();
+
+        console.log(`✅ PASSWORD RESET SUCCESSFUL FOR: ${cleanEmail}`);
+        res.json({ message: "Password reset successful! You can now login." });
     } catch (err) {
         console.error('CRITICAL RESET ERROR:', err);
         res.status(500).json({ message: "Reset failed. Please try again." });
