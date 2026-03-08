@@ -15,7 +15,7 @@ The Smart Canteen System is a digitized ecological solution designed to streamli
 3.  **Real-Time Synchronization**: Using **WebSockets (Socket.io)**, the system achieves bi-directional communication, allowing the kitchen staff to receive orders instantly without manual polling.
 
 ---
-
+`
 ## 🏗️ 2. Functional Module Analysis (Theory Mode)
 
 ### A. Authentication & User Security

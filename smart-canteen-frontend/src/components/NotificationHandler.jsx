@@ -16,7 +16,7 @@ const NotificationHandler = () => {
             console.log('Notification permission granted:', granted);
         });
 
-        const socket = io('http://localhost:5000');
+        const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
 
         socket.on('connect', () => {
             console.log('Socket connected to backend for notifications');

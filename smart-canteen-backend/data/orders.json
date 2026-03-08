@@ -46,5 +46,181 @@
     "status": "Served",
     "date": "2026-02-14T03:53:56.050Z",
     "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260217-01",
+    "userId": "2",
+    "items": [
+      {
+        "id": 2,
+        "name": "Vada Pav",
+        "qty": 1,
+        "price": 20
+      }
+    ],
+    "total": 20,
+    "status": "Served",
+    "date": "2026-02-17T16:01:07.624Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-01",
+    "userId": "2",
+    "items": [
+      {
+        "id": 2,
+        "name": "Vada Pav",
+        "qty": 2,
+        "price": 20
+      },
+      {
+        "id": 3,
+        "name": "Masala Dosa",
+        "qty": 2,
+        "price": 50
+      }
+    ],
+    "total": 140,
+    "status": "Served",
+    "date": "2026-03-07T04:34:48.140Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-02",
+    "userId": "2",
+    "items": [
+      {
+        "id": 10,
+        "name": "Chole Bhature",
+        "qty": 5,
+        "price": 90
+      }
+    ],
+    "total": 450,
+    "status": "Served",
+    "date": "2026-03-07T04:39:01.404Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-03",
+    "userId": "2",
+    "items": [
+      {
+        "id": 2,
+        "name": "Vada Pav",
+        "qty": 8,
+        "price": 20
+      }
+    ],
+    "total": 160,
+    "status": "Served",
+    "date": "2026-03-07T14:06:03.053Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-04",
+    "userId": "2",
+    "items": [
+      {
+        "id": 2,
+        "name": "Vada Pav",
+        "qty": 1,
+        "price": 20
+      },
+      {
+        "id": 3,
+        "name": "Masala Dosa",
+        "qty": 1,
+        "price": 50
+      },
+      {
+        "id": 8,
+        "name": "Coffee",
+        "qty": 1,
+        "price": 20
+      },
+      {
+        "id": 7,
+        "name": "Tea",
+        "qty": 1,
+        "price": 15
+      },
+      {
+        "id": 4,
+        "name": "Idli Sambar",
+        "qty": 1,
+        "price": 40
+      }
+    ],
+    "total": 145,
+    "status": "Served",
+    "date": "2026-03-07T14:19:18.059Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-05",
+    "userId": "2",
+    "items": [
+      {
+        "id": 10,
+        "name": "Chole Bhature",
+        "qty": 1,
+        "price": 90
+      },
+      {
+        "id": 11,
+        "name": "Sandwich",
+        "qty": 1,
+        "price": 60
+      },
+      {
+        "id": 9,
+        "name": "Paratha",
+        "qty": 1,
+        "price": 45
+      }
+    ],
+    "total": 195,
+    "status": "Pending",
+    "date": "2026-03-07T14:21:39.114Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-06",
+    "userId": "2",
+    "items": [
+      {
+        "id": 9,
+        "name": "Paratha",
+        "qty": 3,
+        "price": 45
+      },
+      {
+        "id": 10,
+        "name": "Chole Bhature",
+        "qty": 1,
+        "price": 90
+      }
+    ],
+    "total": 225,
+    "status": "Pending",
+    "date": "2026-03-07T15:01:46.716Z",
+    "paymentMode": "Test Mode"
+  },
+  {
+    "id": "SAM-20260307-07",
+    "userId": "2",
+    "items": [
+      {
+        "id": 15,
+        "name": "Lassi",
+        "qty": 2,
+        "price": 40
+      }
+    ],
+    "total": 80,
+    "status": "Pending",
+    "date": "2026-03-07T16:47:53.034Z",
+    "paymentMode": "Test Mode"
   }
 ]

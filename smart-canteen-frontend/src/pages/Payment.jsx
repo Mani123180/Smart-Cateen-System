@@ -33,7 +33,7 @@ const Payment = () => {
             const response = await createOrder(orderData);
 
             // Emit socket event for real-time notification to distributor/staff
-            const socket = io('http://localhost:5000');
+            const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
             socket.emit('new_order', {
                 orderId: response.data.id,
                 items: orderData.items,
@@ -136,7 +136,7 @@ const Payment = () => {
 
             const response = await createOrder(orderData);
 
-            const socket = io('http://localhost:5000');
+            const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
             socket.emit('new_order', {
                 orderId: response.data.id,
                 items: orderData.items,

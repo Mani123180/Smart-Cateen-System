@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../utils/db');
+const { db: firestore } = require('../utils/firebase');
+const { collection, setDoc, doc } = require('firebase/firestore');
+const Order = require('../models/Order'); // Import MongoDB Model
 
 // Get all orders (for distributor/admin)
 router.get('/', (req, res) => {
@@ -16,7 +19,7 @@ router.get('/user/:userId', (req, res) => {
 });
 
 // Create new order
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
     const { userId, items, total, isTestMode } = req.body;
 
     // 1. Check if all items are in stock
@@ -72,6 +75,23 @@ router.post('/', (req, res) => {
 
     db.orders.create(newOrder);
 
+    // Add directly to Firebase Firestore
+    try {
+        await setDoc(doc(collection(firestore, 'orders'), String(newOrder.id)), newOrder);
+        console.log(`Order ${newOrder.id} successfully saved to Firebase.`);
+    } catch (fbError) {
+        console.error('Error saving order to Firebase:', fbError);
+    }
+
+    // Add directly to MongoDB
+    try {
+        const mongoOrder = new Order(newOrder);
+        await mongoOrder.save();
+        console.log(`Order ${newOrder.id} successfully saved to MongoDB.`);
+    } catch (mongoError) {
+        console.error('Error saving order to MongoDB:', mongoError);
+    }
+
     // Get user info for notification
     const users = db.users.getAll();
     const user = users.find(u => u.id === userId);
@@ -89,7 +109,7 @@ router.post('/', (req, res) => {
 });
 
 // Update order status (for distributor)
-router.patch('/:id/status', (req, res) => {
+router.patch('/:id/status', async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
@@ -103,6 +123,23 @@ router.patch('/:id/status', (req, res) => {
     const oldStatus = orders[orderIndex].status;
     orders[orderIndex].status = status;
     db.orders.save(orders);
+
+    // Update the existing order directly in Firebase Firestore
+    try {
+        // We set merge: true so we don't accidentally overwrite the whole doc if it differs
+        await setDoc(doc(collection(firestore, 'orders'), String(id)), { status: status }, { merge: true });
+        console.log(`Order ${id} status updated in Firebase.`);
+    } catch (fbError) {
+        console.error('Error updating order status in Firebase:', fbError);
+    }
+
+    // Update the existing order directly in MongoDB
+    try {
+        await Order.findOneAndUpdate({ id: id }, { status: status });
+        console.log(`Order ${id} status updated in MongoDB.`);
+    } catch (mongoError) {
+        console.error('Error updating order status in MongoDB:', mongoError);
+    }
 
     // Trigger real-time notification via Socket.IO
     if (req.io && oldStatus !== status) {

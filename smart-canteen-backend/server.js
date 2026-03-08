@@ -8,9 +8,15 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose');
 
 const app = express();
 const server = http.createServer(app);
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/smart_canteen', { family: 4 })
+.then(() => console.log('Successfully connected to MongoDB'))
+.catch(err => console.error('MongoDB connection error:', err));
 
 /**
  * Socket.IO Initialization

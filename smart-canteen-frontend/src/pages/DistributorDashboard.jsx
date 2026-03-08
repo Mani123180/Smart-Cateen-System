@@ -12,7 +12,7 @@ const DistributorDashboard = () => {
     useEffect(() => {
         fetchOrders();
 
-        const socket = io('http://localhost:5000');
+        const socket = io(process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
         socket.on('order_received', (data) => {
             console.log("Distributor: New order notification!", data);
             fetchOrders(); // Refresh list automatically
